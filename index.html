@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>สมุดสุขภาพดิจิทัล ภูเรือ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app"><p class="muted">กำลังโหลด…</p></main>
+<script>
+(function () {
+  // โหลดสคริปต์ตามลำดับ (ตรงกับ ORDER ใน scripts/build.sh); โหลด config.js ก่อนเพื่อตัดสินโหมด
+  // โหมด ?mock=1 (ไม่ใช้ LIFF จริง ข้อมูลจำลอง) ใช้ได้เฉพาะเมื่อ HS_CONFIG.API_URL ว่าง — ระบบจริงที่ตั้ง API_URL แล้วเปิดโหมดจำลองไม่ได้
+  var shared = ['hs', 'thai-date', 'rules', 'advice', 'scoring', 'weeks', 'badges', 'kpi', 'referral', 'notify-plan', 'book', 'receivers', 'handlers'];
+  function rest() {
+    var mock = /[?&]mock=1/.test(location.search) && !(window.HS_CONFIG && window.HS_CONFIG.API_URL), out = [];
+    if (!mock) out.push('https://static.line-scdn.net/liff/edge/2/sdk.js');
+    shared.forEach(function (n) { out.push('shared/' + n + '.js'); });
+    out.push('@data');
+    if (mock) out.push('mock.js');
+    return out.concat(['api.js', 'screens/register.js', 'screens/book.js', 'screens/record.js', 'screens/rewards.js', 'screens/exercise.js', 'screens/forms.js', 'screens/compare.js', 'app.js']);
+  }
+  var list = ['config.js', '@rest'];
+  function fail() { document.getElementById('app').innerHTML = '<p class="err">โหลดหน้าไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่</p>'; }
+  function next(i) {
+    if (i >= list.length) return;
+    if (list[i] === '@rest') { list = list.slice(0, i + 1).concat(rest()); next(i + 1); return; }
+    if (list[i] === '@data') {
+      Promise.all(['settings', 'questionnaires', 'advice'].map(function (n) { return fetch('data/' + n + '.json').then(function (r) { return r.json(); }); }))
+        .then(function (d) { HS.data = { settings: d[0], questionnaires: d[1], advice: d[2] }; next(i + 1); }, fail);
+      return;
+    }
+    var s = document.createElement('script');
+    s.src = list[i]; s.async = false;
+    s.onload = function () { next(i + 1); };
+    s.onerror = fail;
+    document.body.appendChild(s);
+  }
+  next(0);
+})();
+</script>
+</body>
+</html>
